@@ -107,7 +107,7 @@ pub(crate) fn set_reload_handle(handle: Handle<EnvFilter, SCSubscriber>) {
 // The layered Subscriber as built up in `LoggerBuilder::init()`.
 // Used in the reload `Handle`.
 type SCSubscriber<
-	N = tracing_fmt::format::DefaultFields,
-	E = crate::logging::EventFormat,
+	N = tracing_fmt::format::JsonFields,
+	E = tracing_fmt::format::Format<tracing_fmt::format::Json>,
 	W = crate::logging::DefaultLogger,
 > = layer::Layered<tracing_fmt::Layer<Registry, N, E, W>, Registry>;
