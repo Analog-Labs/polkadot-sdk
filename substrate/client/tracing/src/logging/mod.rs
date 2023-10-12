@@ -98,7 +98,7 @@ fn prepare_subscriber<N, E, F, W>(
 	force_colors: Option<bool>,
 	detailed_output: bool,
 	builder_hook: impl Fn(
-		SubscriberBuilder<format::DefaultFields, EventFormat, EnvFilter, DefaultLogger>,
+		SubscriberBuilder<format::JsonFields, format::Format<format::Json>, EnvFilter, DefaultLogger>,
 	) -> SubscriberBuilder<N, E, F, W>,
 ) -> Result<impl Subscriber + for<'a> LookupSpan<'a>>
 where
@@ -174,7 +174,7 @@ where
 	let enable_color = force_colors.unwrap_or_else(|| io::stderr().is_terminal());
 	let timer = fast_local_time::FastLocalTime { with_fractional: detailed_output };
 
-	let event_format = EventFormat {
+	let _event_format = EventFormat {
 		timer,
 		display_target: detailed_output,
 		display_level: detailed_output,
@@ -184,11 +184,13 @@ where
 	};
 	let builder = FmtSubscriber::builder().with_env_filter(env_filter);
 
-	let builder = builder.with_span_events(format::FmtSpan::NONE);
+	let builder = builder.with_span_events(format::FmtSpan::FULL);
 
 	let builder = builder.with_writer(MakeStderrWriter::default());
 
-	let builder = builder.event_format(event_format);
+	let builder = builder.event_format(format().json());
+
+	let builder = builder.fmt_fields(format::JsonFields::default());
 
 	let builder = builder_hook(builder);
 
