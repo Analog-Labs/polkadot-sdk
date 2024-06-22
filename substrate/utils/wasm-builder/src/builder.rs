@@ -61,6 +61,8 @@ impl WasmBuilderSelectProject {
 			export_heap_base: false,
 			import_memory: false,
 			#[cfg(feature = "metadata-hash")]
+			enable_metadata: false,
+			#[cfg(feature = "metadata-hash")]
 			enable_metadata_hash: None,
 		}
 	}
@@ -80,6 +82,8 @@ impl WasmBuilderSelectProject {
 				disable_runtime_version_section_check: false,
 				export_heap_base: false,
 				import_memory: false,
+				#[cfg(feature = "metadata-hash")]
+				enable_metadata: false,
 				#[cfg(feature = "metadata-hash")]
 				enable_metadata_hash: None,
 			})
@@ -119,6 +123,10 @@ pub struct WasmBuilder {
 	export_heap_base: bool,
 	/// Whether `--import-memory` should be added to the link args (WASM-only).
 	import_memory: bool,
+
+	/// Whether to enable the metadata generation.
+	#[cfg(feature = "metadata-hash")]
+	enable_metadata: bool,
 
 	/// Whether to enable the metadata hash generation.
 	#[cfg(feature = "metadata-hash")]
@@ -206,6 +214,13 @@ impl WasmBuilder {
 		self
 	}
 
+	/// Enable generation and export of the included metadata after build.
+	#[cfg(feature = "metadata-hash")]
+	pub fn enable_metadata(mut self) -> Self {
+		self.enable_metadata = true;
+		self
+	}
+
 	/// Enable generation of the metadata hash.
 	///
 	/// This will compile the runtime once, fetch the metadata, build the metadata hash and
@@ -268,6 +283,8 @@ impl WasmBuilder {
 			self.features_to_enable,
 			self.file_name,
 			!self.disable_runtime_version_section_check,
+			#[cfg(feature = "metadata-hash")]
+			self.enable_metadata,
 			#[cfg(feature = "metadata-hash")]
 			self.enable_metadata_hash,
 		);
@@ -344,6 +361,7 @@ fn build_project(
 	features_to_enable: Vec<String>,
 	wasm_binary_name: Option<String>,
 	check_for_runtime_version_section: bool,
+	#[cfg(feature = "metadata-hash")] enable_metadata: bool,
 	#[cfg(feature = "metadata-hash")] enable_metadata_hash: Option<MetadataExtraInfo>,
 ) {
 	let cargo_cmd = match crate::prerequisites::check(target) {
@@ -362,6 +380,8 @@ fn build_project(
 		features_to_enable,
 		wasm_binary_name,
 		check_for_runtime_version_section,
+		#[cfg(feature = "metadata-hash")]
+		enable_metadata,
 		#[cfg(feature = "metadata-hash")]
 		enable_metadata_hash,
 	);
