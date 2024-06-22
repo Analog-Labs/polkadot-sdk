@@ -121,6 +121,7 @@ pub(crate) fn create_and_compile(
 	features_to_enable: Vec<String>,
 	blob_out_name_override: Option<String>,
 	check_for_runtime_version_section: bool,
+	#[cfg(feature = "metadata-hash")] enable_metadata: bool,
 	#[cfg(feature = "metadata-hash")] enable_metadata_hash: Option<MetadataExtraInfo>,
 ) -> (Option<WasmBinary>, WasmBinaryBloaty) {
 	let runtime_workspace_root = get_wasm_workspace_root();
@@ -140,6 +141,9 @@ pub(crate) fn create_and_compile(
 
 	let build_config = BuildConfiguration::detect(target, &project);
 
+	let blob_name =
+		blob_out_name_override.unwrap_or_else(|| get_blob_name(target, &wasm_project_cargo_toml));
+
 	#[cfg(feature = "metadata-hash")]
 	let raw_blob_path = match enable_metadata_hash {
 		Some(extra_info) => {
@@ -153,7 +157,14 @@ pub(crate) fn create_and_compile(
 				None,
 			);
 
-			let hash = crate::metadata_hash::generate_metadata_hash(&raw_blob_path, extra_info);
+			let (metadata, version) = crate::metadata_hash::extract_metadata_and_version(&raw_blob_path);
+
+			if enable_metadata {
+				let metadata_path = project.join(format!("{blob_name}.metadata.scale"));
+				fs::write(metadata_path, metadata.clone()).expect("Metadata can be written.");
+			}
+
+			let hash = crate::metadata_hash::generate_metadata_hash(&metadata, &version, extra_info);
 
 			build_bloaty_blob(
 				target,
@@ -164,14 +175,24 @@ pub(crate) fn create_and_compile(
 				Some(hash),
 			)
 		},
-		None => build_bloaty_blob(
-			target,
-			&build_config.blob_build_profile,
-			&project,
-			default_rustflags,
-			cargo_cmd,
-			None,
-		),
+		None => {
+			let raw_blob_path = build_bloaty_blob(
+				target,
+				&build_config.blob_build_profile,
+				&project,
+				default_rustflags,
+				cargo_cmd,
+				None,
+			);
+
+			if enable_metadata {
+				let (metadata, _) = crate::metadata_hash::extract_metadata_and_version(&raw_blob_path);
+				let metadata_path = project.join(format!("{blob_name}.metadata.scale"));
+				fs::write(metadata_path, metadata).expect("Metadata can be written.");
+			}
+
+			raw_blob_path
+		}
 	};
 
 	// If the feature is not enabled, we only need to do it once.
@@ -185,9 +206,6 @@ pub(crate) fn create_and_compile(
 			cargo_cmd,
 		)
 	};
-
-	let blob_name =
-		blob_out_name_override.unwrap_or_else(|| get_blob_name(target, &wasm_project_cargo_toml));
 
 	let (final_blob_binary, bloaty_blob_binary) = match target {
 		RuntimeTarget::Wasm => {
