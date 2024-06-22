@@ -39,13 +39,10 @@ type HostFunctions = (
 	sp_io::hashing::HostFunctions,
 );
 
-/// Generate the metadata hash.
+/// Extract the runtime metadata and version from a wasm runtime blob.
 ///
-/// The metadata hash is generated as specced in
-/// [RFC78](https://polkadot-fellows.github.io/RFCs/approved/0078-merkleized-metadata.html).
-///
-/// Returns the metadata hash.
-pub fn generate_metadata_hash(wasm: &Path, extra_info: MetadataExtraInfo) -> [u8; 32] {
+/// Returns the metadata in scale encoded binary form.
+pub fn extract_metadata_and_version(wasm: &Path) -> (Vec<u8>, Vec<u8>) {
 	sp_tracing::try_init_simple();
 
 	let wasm = std::fs::read(wasm).expect("Wasm file was just created and should be readable.");
@@ -77,10 +74,6 @@ pub fn generate_metadata_hash(wasm: &Path, extra_info: MetadataExtraInfo) -> [u8
 		.flatten()
 		.expect("Metadata V15 support is required.");
 
-	let metadata = RuntimeMetadataPrefixed::decode(&mut &metadata[..])
-		.expect("Invalid encoded metadata?")
-		.1;
-
 	let runtime_version = executor
 		.call(
 			&mut sp_io::TestExternalities::default().ext(),
@@ -91,6 +84,23 @@ pub fn generate_metadata_hash(wasm: &Path, extra_info: MetadataExtraInfo) -> [u8
 		)
 		.0
 		.expect("`Core_version` should exist.");
+
+	(metadata, runtime_version)
+}
+
+/// Generate the metadata hash.
+///
+/// The metadata hash is generated as specced in
+/// [RFC78](https://polkadot-fellows.github.io/RFCs/approved/0078-merkleized-metadata.html).
+///
+/// Returns the metadata hash.
+pub fn generate_metadata_hash(metadata: &[u8], runtime_version: &[u8],  extra_info: MetadataExtraInfo) -> [u8; 32] {
+	sp_tracing::try_init_simple();
+
+	let metadata = RuntimeMetadataPrefixed::decode(&mut &metadata[..])
+		.expect("Invalid encoded metadata?")
+		.1;
+
 	let runtime_version = sp_version::RuntimeVersion::decode(&mut &runtime_version[..])
 		.expect("Invalid `RuntimeVersion` encoding");
 
