@@ -24,3 +24,4 @@ sp-runtime.workspace = true
 [features]
 default = ["std"]
 std = ["sp-core/std", "sp-runtime/std", "strum/std"]
+full_crypto = ["sp-core/full_crypto"]

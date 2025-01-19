@@ -531,6 +531,11 @@ experimental = [
 	"frame-system?/experimental",
 	"polkadot-sdk-frame?/experimental",
 ]
+full_crypto = [
+	"sp-application-crypto?/full_crypto",
+	"sp-core?/full_crypto",
+	"sp-keyring?/full_crypto",
+]
 with-tracing = [
 	"frame-executive?/with-tracing",
 	"frame-executive?/with-tracing",

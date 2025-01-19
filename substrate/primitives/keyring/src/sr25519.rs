@@ -18,7 +18,7 @@
 //! Support code for the runtime. A set of test accounts.
 
 pub use sp_core::sr25519;
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "full_crypto"))]
 use sp_core::sr25519::Signature;
 use sp_core::{
 	hex2array,
@@ -84,7 +84,7 @@ impl Keyring {
 		self.to_raw_public().into()
 	}
 
-	#[cfg(feature = "std")]
+	#[cfg(any(feature = "std", feature = "full_crypto"))]
 	pub fn sign(self, msg: &[u8]) -> Signature {
 		Pair::from(self).sign(msg)
 	}
