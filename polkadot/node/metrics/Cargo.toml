@@ -17,9 +17,7 @@ gum.default-features = true
 
 metered = { features = ["futures_channel"], workspace = true }
 sc-service.workspace = true
-sc-service.default-features = true
 sc-cli.workspace = true
-sc-cli.default-features = true
 prometheus-endpoint.workspace = true
 prometheus-endpoint.default-features = true
 sc-tracing.workspace = true
