@@ -25,6 +25,7 @@ use frame_support::traits::{
 		Balanced, Inspect as FunInspect,
 	},
 	tokens::{Fortitude, Precision, Preservation},
+	InspectLockableCurrency,
 };
 use sp_runtime::{DispatchResult, Saturating};
 
@@ -62,7 +63,9 @@ pub fn staked<T: Config>(who: &T::AccountId) -> BalanceOf<T> {
 /// Does not include the current stake.
 pub fn free_to_stake<T: Config>(who: &T::AccountId) -> BalanceOf<T> {
 	// since we want to be able to use frozen funds for staking, we force the reduction.
+	// PATCHED: Do not allow the use of vested funds.
 	T::Currency::reducible_balance(who, Preservation::Preserve, Fortitude::Force)
+		.saturating_sub(T::OldCurrency::balance_locked(*b"vesting ", who))
 }
 
 /// Set balance that can be staked for `who`.
