@@ -150,13 +150,13 @@ use frame_support::{
 			Balanced, Inspect as FunInspect, Mutate as FunMutate,
 		},
 		tokens::{fungible::Credit, Fortitude, Precision, Preservation, Restriction},
-		Defensive, DefensiveOption, Imbalance, OnUnbalanced,
+		Defensive, DefensiveOption, Imbalance, InspectLockableCurrency, OnUnbalanced,
 	},
 };
 use sp_io::hashing::blake2_256;
 use sp_runtime::{
 	traits::{CheckedAdd, CheckedSub, TrailingZeroInput, Zero},
-	ArithmeticError, DispatchResult, Perbill, RuntimeDebug, Saturating,
+	ArithmeticError, DispatchResult, Perbill, RuntimeDebug, Saturating, TokenError,
 };
 use sp_staking::{Agent, Delegator, EraIndex, StakingInterface, StakingUnchecked};
 
@@ -199,7 +199,8 @@ pub mod pallet {
 		/// Currency type.
 		type Currency: FunHoldMutate<Self::AccountId, Reason = Self::RuntimeHoldReason>
 			+ FunMutate<Self::AccountId>
-			+ FunHoldBalanced<Self::AccountId>;
+			+ FunHoldBalanced<Self::AccountId>
+			+ InspectLockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>, Balance = BalanceOf<Self>>;
 
 		/// Handler for the unbalanced reduction when slashing a delegator.
 		type OnSlash: OnUnbalanced<Credit<Self::AccountId, Self::Currency>>;
@@ -583,6 +584,13 @@ impl<T: Config> Pallet<T> {
 			Delegation::<T>::new(&agent, amount)
 		}
 		.update(&delegator);
+
+		// PATCHED: Do not allow the use of vested funds.
+		ensure!(
+			amount <= T::Currency::reducible_balance(&delegator, Preservation::Protect, Fortitude::Force)
+				.saturating_sub(T::Currency::balance_locked(*b"vesting ", &delegator)),
+			TokenError::FundsUnavailable
+		);
 
 		// try to hold the funds.
 		T::Currency::hold(&HoldReason::StakingDelegation.into(), &delegator, amount)?;
